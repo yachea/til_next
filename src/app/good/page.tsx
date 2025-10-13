@@ -1,4 +1,4 @@
-function page() {
+async function page() {
   return <div>상품</div>;
 }
 

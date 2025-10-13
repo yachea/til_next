@@ -1,3 +1,6 @@
+import SearchBar from "@/components/SearchBar";
+import ServerTest from "@/components/ServerTest";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -5,7 +8,9 @@ interface LayoutProps {
 function Layout({ children }: LayoutProps) {
   return (
     <div>
-      <div>검색창</div>
+      <SearchBar>
+        <ServerTest />
+      </SearchBar>
       <div>{children}</div>
     </div>
   );
