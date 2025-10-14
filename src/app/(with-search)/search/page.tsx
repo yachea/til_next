@@ -1,6 +1,5 @@
 import styles from "@/app/(with-search)/search/page.module.css";
 import GoodItem from "@/components/GoodItem";
-import goods from "@/mock/good.json";
 import { GoodDataType } from "@/types/types";
 
 interface PageProps {

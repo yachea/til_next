@@ -1,4 +1,3 @@
-import goods from "@/mock/good.json";
 import styles from "@/app/(with-search)/page.module.css";
 import GoodItem from "@/components/GoodItem";
 import { GoodDataType } from "@/types/types";
@@ -12,7 +11,7 @@ async function AllGoods() {
   // 아래의 fetch 함수는 js 내장 함수가 아니라 Next.js 의 내장함수
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
-    { next: { revalidate: 3600 } }
+    { cache: "force-cache" }
   );
   const allGoods: GoodDataType[] = await response.json();
   // console.log(allGoods);
@@ -29,7 +28,8 @@ async function AllGoods() {
 async function RecommendGoods() {
   // js 의 내장 fetch 가 아니고, Next.js 의 내장 fetch 입니다.
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`
+    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
+    { cache: "force-cache" }
   );
   const allGoods: GoodDataType[] = await response.json();
   return (
