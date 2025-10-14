@@ -16,6 +16,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 캐싱 상태 콘솔 출력
+  // logging: {
+  //   fetches: {
+  //     fullUrl: true,
+  //   },
+  // },
 };
 
 export default nextConfig;
