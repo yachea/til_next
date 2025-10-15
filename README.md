@@ -1,517 +1,184 @@
-# Loading
+# Error
 
-- 라우터에 의한 page 출력시 시간이 오래 걸리는 경우 존재
-- Dynamic Page 는 데이터연동이라서 로딩이 걸림.
-- 비동기 페이지에서는 로딩이 걸림
-- Next.js 에서는 page 에 로딩을 처리하는 loading.tsx 가 존재함.
+- Next.js 에서 에러를 처리하는 `error.tsx` 가 존재함.
+- 파일명이 고정되어 있음.
+- 각 페이지 라우터 별로 error.tsx 를 생성가능함.
 
-## 1. 주의사항
+## 1. 파일 생성
 
-- page 에만 적용됨.
-- 컴포넌트에 적용되는 것은 아님 (`별도로 작성`필요 : 리액트의 Supense 를 활용)
-- `loading.tsx` 라고 파일명 전해져 있음.
-- Next.js 는 파일 컨벤션에서 소문자를 기준으로 함.
+- `/src/app/(with-search)/error.tsx 파일` 생성
 
-## 2. 적용해보기
+## 2. 주의사항
 
-- Dynamic page 가 아니라면 loading.tsx 작동안됨.
-- `/src/app/(with-search)/search/page.tsx`
-- `/src/app/(with-search)/search/loading.tsx` 파일 생성
+- 반드시 서버 뿐만 아니라 클라링언트 측 에러에도 처리하도록 한다.
+- `"use client"` 를 반드시 작성해 주자.
 
 ```tsx
-export default function Loading() {
-  return <div>Loading...</div>;
+"use client";
+
+function error() {
+  return <div>에러가 발생했습니다.</div>;
 }
+
+export default error;
 ```
 
-## 3. 수업을 위해서 Delay 를 시킴
-
-- 나중에는 제거함.
-- `/src/util 폴더`생성
-- `/src/util/delay.ts 파일`생성
-
-```ts
-import { resolve } from "path";
-
-export async function delay(ms: number) {
-  await new Promise((resolve) => {
-    setTimeout(() => {
-      resolve("");
-    }, ms);
-  });
-}
-```
-
-## 4. Delay 적용하기
-
-- `/src/app/(with-search)/search/page.tsx`
+## 3. 자동으로 에러 메시지를 출력하는 경우
 
 ```tsx
-import styles from "@/app/(with-search)/search/page.module.css";
-import GoodItem from "@/components/GoodItem";
-import { GoodDataType } from "@/types/types";
-import { delay } from "@/util/delay";
+"use client";
 
-interface PageProps {
-  searchParams: Promise<{ keyword: string }>;
+function error({ error }: { error: Error }) {
+  return <div>{error.message}에러가 발생했습니다.</div>;
 }
 
-async function Page({ searchParams }: PageProps) {
-  const { keyword } = await searchParams;
-  // 일부러 시간을 지연시킴
-  await delay(1500);
-
-  // fetch 를 활용한 검색
-  // js 내장 fetch 가 아니고 Next.js 의 fetch 활용
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products/category/${keyword}`
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  return (
-    <div className={styles.container}>
-      <h4>
-        <strong>{keyword}</strong> : 검색페이지
-      </h4>
-      <div>
-        {allGoods.map((item) => (
-          <GoodItem key={item.id} {...item} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default Page;
+export default error;
 ```
 
-## 5. 주의사항
+## 4. 에러가 발생하면 다시 실행하도록 함수도 전달해줌.
 
-### 5.1. UX 적으로 문제가 될 수도 있습니다.
-
-- 아래처럼 `Query String 은 loading.tsx 가 출력안됨.`
-- http://localhost:3000/search?keyword=jewelery
-- http://localhost:3000/search?keyword=aaa
-
-### 5.2. 하위페이지에서도 적용됨.
-
-- layout.tsx 처럼 하위의 라우터 페이지에 모두 출력이 됨.
-- 모두 동일한 loading.tsx 를 보여주는 어색함.
-- http://localhost:3000/search/now
-- http://localhost:3000/search/go
-
-### 5.3. async 가 반드시 존재해야 작동됨.
-
-- page 가 비동기로서 async 가 적용되어야 작동함.
-
-### 5.4. 컴포넌트에는 적용안됨.
-
-- 리액트의 Suspense 활용을 권장함.
-
-## 6. 컴포넌트에 Suspense 활용하기
-
-- loading.tsx 제거
-
-### 6.1. Suspense 적용하기
-
-- `/src/app/(with-search)/search/page.tsx`
+- reset 함수 : 용도가 제한 되어져 있음.
+- 서버를 다시 실행하는 것이 아님.
+- 오로지 리랜더링만 실행함. (백엔드 데이터 호출 없음)
+- 에러 상태만 초기화하고 컴포넌트를 리랜더링만 함.
+- `추천하지 않음.`
 
 ```tsx
-import styles from "@/app/(with-search)/search/page.module.css";
-import GoodItem from "@/components/GoodItem";
-import { GoodDataType } from "@/types/types";
-import { delay } from "@/util/delay";
-import { Suspense } from "react";
+"use client";
 
-// 실제로는 외부 컴포넌트로 추출하기를 권장 : components 폴더 / SearchResult.tsx
-// 리액트 suspense 로 세밀하게 로딩 처리하기
-interface SearchResultProps {
-  keyword: string;
+import { useEffect } from "react";
+
+interface ErrorProps {
+  error: Error;
+  reset: () => void;
 }
-
-async function SearchResult({ keyword }: SearchResultProps) {
-  // 일부러 시간을 지연시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products/category/${keyword}`
-  );
-  const allGoods: GoodDataType[] = await response.json();
-
-  return (
-    <div className={styles.container}>
-      <h4>
-        <strong>{keyword}</strong> : 검색페이지
-      </h4>
-      <div>
-        {allGoods.map((item) => (
-          <GoodItem key={item.id} {...item} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface PageProps {
-  searchParams: Promise<{ keyword: string }>;
-}
-
-async function Page({ searchParams }: PageProps) {
-  const { keyword } = await searchParams;
-
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SearchResult keyword={keyword} />;
-    </Suspense>
-  );
-}
-
-export default Page;
-```
-
-## 7. 스켈레톤 적용하기
-
-- 최적화 중 Shift Layout 현상 제거
-- 최적화 중 스켈레톤을 통해서 사용자를 조금 더 기다리게 유도
-
-### 7.1. 메인페이지에 적용해 보기
-
-- `src/app/(with-search)/page.tsx` 적용해보기
-
-```tsx
-import styles from "@/app/(with-search)/page.module.css";
-import GoodItem from "@/components/GoodItem";
-import { GoodDataType } from "@/types/types";
-import { delay } from "@/util/delay";
-import { Suspense } from "react";
-
-// Dynamic Page 로 강제로 설정합니다. (권장하지 않음, 수업이라서)
-export const dynamic = "force-dynamic";
-
-// 1. 전체 제품 목록 가져오기
-async function AllGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
-    { next: { revalidate: 3600 } }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  // console.log(allGoods);
+function Error({ error, reset }: ErrorProps) {
+  useEffect(() => {
+    console.log(error.message);
+  }, []);
   return (
     <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
+      <h3>{error.message} 에러가 발생했습니다.</h3>
+      <button onClick={reset}>다시 시도</button>
     </div>
   );
 }
 
-// 2. 추천 상품 목록
-async function RecommendGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
-    { cache: "force-cache" }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  return (
-    <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
-    </div>
-  );
-}
-
-function Home() {
-  return (
-    <div className={styles.container}>
-      <section>
-        <h3>지금 추천하는 상품</h3>
-        <Suspense fallback={<div>Loading...</div>}>
-          <RecommendGoods />
-        </Suspense>
-      </section>
-      <section>
-        <h3>전체 상품</h3>
-        <Suspense fallback={<div>Loading...</div>}>
-          <AllGoods />
-        </Suspense>
-      </section>
-    </div>
-  );
-}
-
-export default Home;
+export default Error;
 ```
 
-### 7.2. 메인페이지에 스켈레톤 적용해 보기
+## 5. 강제로 새로고침을 권장함.
 
-- 스켈레톤 : 뼈대 (컴포넌트로 생성하자)
-- `/src/components/skeleton` 폴더 생성
-- `/src/components/skeleton/GoodItemSkeleton.tsx 파일` 생성
+- 웹브라우저를 새로고침하도록 하여 데이터 호출부터 다시시작
+- `window.location.reload()` 권장함.
 
 ```tsx
-import styles from "@/components/skeleton/GoodItemSkeleton.module.css";
-const GoodItemSkeleton = () => {
+"use client";
+
+import { useEffect } from "react";
+
+interface ErrorProps {
+  error: Error;
+  reset: () => void;
+}
+function Error({ error, reset }: ErrorProps) {
+  useEffect(() => {
+    console.log(error.message);
+  }, []);
   return (
-    <div className={styles.container}>
-      <div className={styles.image}></div>
-      <div className={styles.box}>
-        <div className={styles.title}></div>
-        <div className={styles.category}></div>
-        <br />
-        <div className={styles.rating}></div>
-      </div>
+    <div>
+      <h3>{error.message} 에러가 발생했습니다.</h3>
+      {/* <button onClick={reset}>다시 시도</button> */}
+      <button onClick={() => window.location.reload()}>다시 시도</button>
     </div>
   );
-};
+}
 
-export default GoodItemSkeleton;
+export default Error;
 ```
 
-- `/src/components/skeleton/GoodItemSkeleton.module.css 파일` 생성
+## 6. router.refresh() 활용해 보기
 
-```css
-.container {
-  display: flex;
-  gap: 15px;
-  padding: 20px 10px;
-  border-bottom: 1px solid rgb(220, 220, 220);
-  color: #000;
-  text-decoration: none;
-
-  height: 155px;
-}
-.image {
-  width: 80px;
-  height: 115px;
-  background-color: rgb(220, 220, 220);
-}
-.box {
-  flex: 1;
-}
-.title {
-  width: 50%;
-  height: 25px;
-  background-color: rgb(220, 220, 220);
-  margin-bottom: 10px;
-}
-.category {
-  width: 20%;
-  height: 20px;
-  background-color: rgb(220, 220, 220);
-}
-.rating {
-  height: 21px;
-  background-color: rgb(220, 220, 220);
-}
-```
-
-- 실제로 적용해 보기
-- `src/app/(with-search)/page.tsx` 적용
+- 웹브라우저 강제 새로고침은 state가 초기화 될 소지 있음.
+- Next 서버에게 현재 페이지에 필요로 한 `서버 컴포넌트들을 다시 실행하도록 함.`
+- 비동기로 작동됨.( await 은 안된다.)
+- reset() 을 통해 에러상태를 초기화하고 다시 컴포넌트를 리랜더링 해준다.
 
 ```tsx
-import styles from "@/app/(with-search)/page.module.css";
-import GoodItem from "@/components/GoodItem";
-import GoodItemSkeleton from "@/components/skeleton/GoodItemSkeleton";
-import { GoodDataType } from "@/types/types";
-import { delay } from "@/util/delay";
-import { Suspense } from "react";
+"use client";
 
-// Dynamic Page 로 강제로 설정합니다. (권장하지 않음, 수업이라서)
-export const dynamic = "force-dynamic";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-// 1. 전체 제품 목록 가져오기
-async function AllGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
+interface ErrorProps {
+  error: Error;
+  reset: () => void;
+}
+function Error({ error, reset }: ErrorProps) {
+  const router = useRouter(); // next/navigation
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
-    { next: { revalidate: 3600 } }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  // console.log(allGoods);
+  useEffect(() => {
+    console.log(error.message);
+  }, []);
   return (
     <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
+      <h3>{error.message} 에러가 발생했습니다.</h3>
+      {/* <button onClick={reset}>다시 시도</button> */}
+      {/* <button onClick={() => window.location.reload()}>다시 시도</button> */}
+      <button
+        onClick={() => {
+          router.refresh(); // 서버  컴포넌트 다시 실행
+          reset(); // 에러 초기화, 리랜더링
+        }}
+      >
+        다시 시도
+      </button>
     </div>
   );
 }
 
-// 2. 추천 상품 목록
-async function RecommendGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
-    { cache: "force-cache" }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  return (
-    <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
-    </div>
-  );
-}
-
-function Home() {
-  return (
-    <div className={styles.container}>
-      <section>
-        <h3>지금 추천하는 상품</h3>
-        <Suspense
-          fallback={
-            <>
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-            </>
-          }
-        >
-          <RecommendGoods />
-        </Suspense>
-      </section>
-      <section>
-        <h3>전체 상품</h3>
-        <Suspense
-          fallback={
-            <>
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-              <GoodItemSkeleton />
-            </>
-          }
-        >
-          <AllGoods />
-        </Suspense>
-      </section>
-    </div>
-  );
-}
-
-export default Home;
+export default Error;
 ```
 
-### 7.3. 스켈레톤 리스트로 업데이트 해보자.
+## 7. startTransition 활용해 보기
 
-- `/src/components/skeleton/GoodItemListSkeleton.tsx 파일` 생성
+- React 18버전 후반에 추가된 기능
+- 콜백함수를 인자로 콜백함수 안쪽에 UI 작업을 다시 동시에 처리해줌.
 
 ```tsx
-import GoodItemSkeleton from "./GoodItemSkeleton";
+"use client";
 
-interface GoodItemListSkeletonProps {
-  count: number;
+import { useRouter } from "next/navigation";
+import { startTransition, useEffect } from "react";
+
+interface ErrorProps {
+  error: Error;
+  reset: () => void;
 }
-const GoodItemListSkeleton = ({ count }: GoodItemListSkeletonProps) => {
-  return new Array(count)
-    .fill(0)
-    .map((_, index) => <GoodItemSkeleton key={index} />);
-};
+function Error({ error, reset }: ErrorProps) {
+  const router = useRouter(); // next/navigation
 
-export default GoodItemListSkeleton;
-```
-
-- 적용하기
-- `src/app/(with-search)/page.tsx` 적용
-
-```tsx
-import styles from "@/app/(with-search)/page.module.css";
-import GoodItem from "@/components/GoodItem";
-import GoodItemListSkeleton from "@/components/skeleton/GoodItemListSkeleton";
-import GoodItemSkeleton from "@/components/skeleton/GoodItemSkeleton";
-import { GoodDataType } from "@/types/types";
-import { delay } from "@/util/delay";
-import { Suspense } from "react";
-
-// Dynamic Page 로 강제로 설정합니다. (권장하지 않음, 수업이라서)
-export const dynamic = "force-dynamic";
-
-// 1. 전체 제품 목록 가져오기
-async function AllGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
-    { next: { revalidate: 3600 } }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  // console.log(allGoods);
+  useEffect(() => {
+    console.log(error.message);
+  }, []);
   return (
     <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
+      <h3>{error.message} 에러가 발생했습니다.</h3>
+      {/* <button onClick={reset}>다시 시도</button> */}
+      {/* <button onClick={() => window.location.reload()}>다시 시도</button> */}
+      <button
+        onClick={() => {
+          startTransition(() => {
+            router.refresh(); // 서버  컴포넌트 다시 실행
+            reset(); // 에러 초기화, 리랜더링
+          });
+        }}
+      >
+        다시 시도
+      </button>
     </div>
   );
 }
 
-// 2. 추천 상품 목록
-async function RecommendGoods() {
-  // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
-    { cache: "force-cache" }
-  );
-  const allGoods: GoodDataType[] = await response.json();
-  return (
-    <div>
-      {allGoods.map((item) => (
-        <GoodItem key={item.id} {...item} />
-      ))}
-    </div>
-  );
-}
-
-function Home() {
-  return (
-    <div className={styles.container}>
-      <section>
-        <h3>지금 추천하는 상품</h3>
-        <Suspense
-          fallback={
-            <>
-              <GoodItemListSkeleton count={3} />
-            </>
-          }
-        >
-          <RecommendGoods />
-        </Suspense>
-      </section>
-      <section>
-        <h3>전체 상품</h3>
-        <Suspense
-          fallback={
-            <>
-              <GoodItemListSkeleton count={5} />
-            </>
-          }
-        >
-          <AllGoods />
-        </Suspense>
-      </section>
-    </div>
-  );
-}
-
-export default Home;
+export default Error;
 ```
-
-## 8. 라이브러리
-
-- https://github.com/dvtng/react-loading-skeleton#readme
-- https://www.davidhu.io/react-spinners/

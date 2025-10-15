@@ -7,12 +7,12 @@ import { delay } from "@/util/delay";
 import { Suspense } from "react";
 
 // Dynamic Page 로 강제로 설정합니다. (권장하지 않음, 수업이라서)
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 
 // 1. 전체 제품 목록 가져오기
 async function AllGoods() {
   // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
+  // await delay(1500);
 
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
@@ -32,7 +32,7 @@ async function AllGoods() {
 // 2. 추천 상품 목록
 async function RecommendGoods() {
   // 수업을 위해서 강제로 delay 시킴
-  await delay(1500);
+  // await delay(1500);
 
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
