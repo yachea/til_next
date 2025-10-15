@@ -1,17 +1,22 @@
 import styles from "@/app/(with-search)/page.module.css";
 import GoodItem from "@/components/GoodItem";
+import GoodItemListSkeleton from "@/components/skeleton/GoodItemListSkeleton";
+import GoodItemSkeleton from "@/components/skeleton/GoodItemSkeleton";
 import { GoodDataType } from "@/types/types";
+import { delay } from "@/util/delay";
+import { Suspense } from "react";
 
-// Data Fetching : 데이터를 불러오면 Next.js 서버가 데이터를 보관 (Cache)
-// 기본값은 데이터를 불러들이면 Cache 해서 업데이트 자료를 다시  호출 하지 않음.
-// 백엔드 호출이 줄어드는 장점과 화면 출력이 빠름, HTML 미리 생성하므로 SEO 좋음.
+// Dynamic Page 로 강제로 설정합니다. (권장하지 않음, 수업이라서)
+export const dynamic = "force-dynamic";
 
 // 1. 전체 제품 목록 가져오기
 async function AllGoods() {
-  // 아래의 fetch 함수는 js 내장 함수가 아니라 Next.js 의 내장함수
+  // 수업을 위해서 강제로 delay 시킴
+  await delay(1500);
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/products?limit=10`,
-    { cache: "force-cache" }
+    { next: { revalidate: 3600 } }
   );
   const allGoods: GoodDataType[] = await response.json();
   // console.log(allGoods);
@@ -26,7 +31,9 @@ async function AllGoods() {
 
 // 2. 추천 상품 목록
 async function RecommendGoods() {
-  // js 의 내장 fetch 가 아니고, Next.js 의 내장 fetch 입니다.
+  // 수업을 위해서 강제로 delay 시킴
+  await delay(1500);
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/products?limit=3`,
     { cache: "force-cache" }
@@ -46,11 +53,27 @@ function Home() {
     <div className={styles.container}>
       <section>
         <h3>지금 추천하는 상품</h3>
-        <RecommendGoods />
+        <Suspense
+          fallback={
+            <>
+              <GoodItemListSkeleton count={3} />
+            </>
+          }
+        >
+          <RecommendGoods />
+        </Suspense>
       </section>
       <section>
         <h3>전체 상품</h3>
-        <AllGoods />
+        <Suspense
+          fallback={
+            <>
+              <GoodItemListSkeleton count={5} />
+            </>
+          }
+        >
+          <AllGoods />
+        </Suspense>
       </section>
     </div>
   );
