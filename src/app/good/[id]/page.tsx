@@ -39,6 +39,34 @@ async function GoodDetail({ id }: GoodDetailProps) {
   );
 }
 
+// SEO
+export const generateMetadata = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/products/${id}`
+    );
+    const good: GoodDataType = await res.json();
+    const { title, description, image } = good;
+    return {
+      title: `상품 ${title} 상세 페이지`,
+      description: `상품 설명 - ${description}`,
+      openGraph: {
+        title: `상품 ${title} 상세 페이지`,
+        description: `상품 설명 - ${description}`,
+        images: [{ url: image }],
+      },
+    };
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
