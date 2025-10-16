@@ -24,7 +24,7 @@ export async function deleteAction(_: any, formData: FormData) {
     console.log(error);
     return {
       status: false,
-      messsage: `해당하는 ${id}가 삭제에 실패했습니다. 다시 시도해주세요.`,
+      messsage: `해당하는 ${goodId}가 삭제에 실패했습니다. 다시 시도해주세요.`,
     };
   }
 }
